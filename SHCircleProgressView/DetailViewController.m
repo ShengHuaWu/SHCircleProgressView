@@ -46,11 +46,6 @@
 - (void)tap:(UITapGestureRecognizer *)gesture
 {
     [self.circleProgressView stopAnimating];
-//    if (self.circleProgressView.progress + 0.1f <= 1.0f) {
-//        self.circleProgressView.progress += 0.1f;
-//    } else {
-//        self.circleProgressView.progress = 1.0f;
-//    }
 }
 
 @end

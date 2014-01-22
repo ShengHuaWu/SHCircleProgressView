@@ -8,35 +8,23 @@
 
 #import "SHCircleProgressView.h"
 
-/**
- *  This string is an attribute, which you can apply to the user info in a timer.
- *  The value of this attribute is an NSNumber object containing an boolean.
- *  The value indicates whether the circle progress view repeats animating.
- */
-static NSString *const SHCircleProgressViewRepeatAnimatingKey = @"SHCircleProgressViewRepeatAnimatingKey";
-
 @interface SHCircleProgressView ()
-@property (nonatomic, assign) CGFloat lastProgress;
-@property (nonatomic, strong) NSTimer *timer;
+@property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, weak, readwrite) UILabel *titleLabel;
 @end
 
 @implementation SHCircleProgressView
 
-- (void)setLastProgress:(CGFloat)lastProgress
-{
-    if (_lastProgress != lastProgress) {
-        _lastProgress = lastProgress;
-        [self setNeedsDisplay];
-    }
-}
-
 - (void)setProgress:(CGFloat)progress
 {
     if (_progress != progress) {
         _progress = progress;
-        if (!self.timer) {
-            self.timer = [NSTimer scheduledTimerWithTimeInterval:0.0625f target:self selector:@selector(updateLastProgress:) userInfo:@{SHCircleProgressViewRepeatAnimatingKey: [NSNumber numberWithBool:NO]} repeats:YES];
+        
+        [self setNeedsDisplay];
+        
+        if (!self.displayLink) {
+            self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateLastProgress)];
+            [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
         }
     }
 }
@@ -81,7 +69,7 @@ static NSString *const SHCircleProgressViewRepeatAnimatingKey = @"SHCircleProgre
     circleFrame = CGRectOffset(circleFrame, 0.0f, -(CGRectGetHeight(self.titleLabel.frame) + 5.0f) * 0.5f); // Shift the circle frame
     if (CGRectIntersectsRect(circleFrame, rect)) {
         CGContextSetFillColorWithColor(context, [UIColor clearColor].CGColor);
-        CGContextSetBlendMode(context, kCGBlendModeClear); // This is important
+        CGContextSetBlendMode(context, kCGBlendModeClear); // !!!: This is important
         CGContextFillEllipseInRect(context, circleFrame);
     }
     // Fill the inside progressing area, the measure of this area depends on the progress property
@@ -99,11 +87,11 @@ static NSString *const SHCircleProgressViewRepeatAnimatingKey = @"SHCircleProgre
          *        1/2 pi
          *
          */
-        CGFloat startAngle = self.lastProgress * 2.0 * M_PI - M_PI_2; // Map the progress to the angle
+        CGFloat startAngle = self.progress * 2.0 * M_PI - M_PI_2; // Map the progress to the angle
         CGPathAddArc(path, NULL, self.center.x, self.center.y - (CGRectGetHeight(self.titleLabel.frame) + 5.0f) * 0.5f, self.radius - self.circleGap, startAngle, 3.0 * M_PI_2, NO);
         CGContextAddPath(context, path);
         CGContextClosePath(context);
-        CGContextSetBlendMode(context, kCGBlendModeColor);
+        CGContextSetBlendMode(context, kCGBlendModeColor); // Reset the blend mode
         CGContextSetFillColorWithColor(context, self.progressColor.CGColor);
         CGContextFillPath(context);
     }
@@ -114,34 +102,29 @@ static NSString *const SHCircleProgressViewRepeatAnimatingKey = @"SHCircleProgre
 #pragma mark - Public method
 - (void)startAnimating
 {
-    if (!self.timer) {
-        self.timer = [NSTimer scheduledTimerWithTimeInterval:0.0625f target:self selector:@selector(updateLastProgress:) userInfo:@{SHCircleProgressViewRepeatAnimatingKey: [NSNumber numberWithBool:YES]} repeats:YES];
+    if (!self.displayLink) {
+        self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateLastProgress)];
+        [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
     }
 }
 
 - (void)stopAnimating
 {
-    [self.timer invalidate];
-    self.timer = nil;
+    [self.displayLink invalidate];
+    self.displayLink = nil;
     
     [self removeFromSuperview];
 }
 
 #pragma mark - Timer selector
-- (void)updateLastProgress:(NSTimer *)timer
+- (void)updateLastProgress
 {
-    NSDictionary *userInfo = [timer userInfo];
-    CGFloat maxProgress = [userInfo[SHCircleProgressViewRepeatAnimatingKey] boolValue] ? 1.0f : self.progress;
-    if (self.lastProgress + 0.0125f < maxProgress) {
-        self.lastProgress += 0.0125f;
+    if (self.progress >= 1.0f) {
+        self.progress = 0.0f;
+        [self.displayLink invalidate];
+        self.displayLink = nil;
     } else {
-        if ([userInfo[SHCircleProgressViewRepeatAnimatingKey] boolValue]) {
-            self.lastProgress = 0.0f;
-        } else {
-            self.lastProgress = self.progress;
-            [self.timer invalidate];
-            self.timer = nil;
-        }
+        self.progress += 0.0125f;
     }
 }
 
