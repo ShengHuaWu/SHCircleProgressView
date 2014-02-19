@@ -27,10 +27,6 @@
     [button sizeToFit];
     button.center = self.view.center;
     [self.view addSubview:button];
-    
-    NSDictionary *info = [[NSBundle mainBundle] infoDictionary];
-    NSString *className = info[@"CLASS_NAME"];
-    NSLog(@"%@", className);
 }
 
 #pragma mark - Button action

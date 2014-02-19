@@ -120,7 +120,7 @@
 - (void)updateLastProgress
 {
     if (self.progress >= 1.0f) {
-        self.progress = 0.0f;
+        self.progress = 1.0f;
         [self.displayLink invalidate];
         self.displayLink = nil;
     } else {

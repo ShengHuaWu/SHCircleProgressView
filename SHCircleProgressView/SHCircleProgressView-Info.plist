@@ -34,7 +34,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CLASS_NAME</key>
-	<string>${CLASS_NAME}</string>
 </dict>
 </plist>
